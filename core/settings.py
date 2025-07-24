@@ -11,6 +11,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['aicegroup.pythonanywhere.com','127.0.0.1',"localhost"]
 
+# Allow all CORS origins (for dev)
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # For example, allow this domain (frontend running on port 3000)
+    'https://salesaice.vercel.app',    # Another domain
+]
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,5 +107,4 @@ STATIC_URL = 'static/'
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Allow all CORS origins (for dev)
-CORS_ALLOW_ALL_ORIGINS = True
+
