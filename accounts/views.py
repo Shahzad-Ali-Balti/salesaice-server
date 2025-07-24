@@ -1,27 +1,41 @@
-# Create your views here.
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.contrib.auth import authenticate, get_user_model
-import jwt
-from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import get_user_model
+import json
 
 User = get_user_model()
 
-class SignupView(APIView):
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "User already exists"}, status=400)
-        user = User.objects.create_user(username=username, password=password)
-        return Response({"msg": "User created successfully"})
+@csrf_exempt
+def register(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-        if user:
-            token = jwt.encode({"id": user.id}, settings.SECRET_KEY, algorithm="HS256")
-            return Response({"token": token})
-        return Response({"error": "Invalid credentials"}, status=401)
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'User already exists'}, status=400)
+
+        user = User.objects.create_user(email=email, password=password)
+        return JsonResponse({'message': 'User registered successfully'})
+
+
+@csrf_exempt
+def login(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
+
+        user = authenticate(request, email=email, password=password)
+
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+            return JsonResponse({
+                'message': 'Login successful',
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+            })
+        else:
+            return JsonResponse({'error': 'Invalid email or password'}, status=401)
