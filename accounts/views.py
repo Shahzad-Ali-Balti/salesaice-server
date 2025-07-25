@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from .serializers import UserSerializer
 import json
 
 User = get_user_model()
@@ -32,10 +33,15 @@ def login(request):
 
         if user is not None:
             refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+
+            # Serialize user
+            user_data = UserSerializer(user).data
+
             return JsonResponse({
-                'message': 'Login successful',
-                'access_token': str(refresh.access_token),
-                'refresh_token': str(refresh),
+                'token': access_token,
+                'user': user_data,
             })
+
         else:
             return JsonResponse({'error': 'Invalid email or password'}, status=401)
