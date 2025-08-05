@@ -66,7 +66,7 @@ def login(request):
                 'email': user.email,
                 'role': user.role,
             }
-            secret_key=os.getenv("JWT_SECRET_KEY")
+            secret_key=settings.SECRET_KEY
             # Encode the access token manually with custom claims
             custom_access_token = jwt.encode(
                 {**refresh_payload, **{'exp': refresh.access_token['exp']}},  # Add expiration from original token
