@@ -1,10 +1,13 @@
 from pathlib import Path
+# settings.py
+from datetime import timedelta
 
+import os
+from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv()
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=9tgzd3ihuj%8il22ah=%kodb%ddz&3r*jb_du11w!)amcr#_4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -76,7 +79,10 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',  # Default permission for authenticated users
+    ]
 }
 
 # Password validation
@@ -94,6 +100,17 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+SECRET_KEY= os.getenv('JWT_SECRET_KEY')
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'SIGNING_KEY':SECRET_KEY,  # Replace with your JWT signing secret key
+    'ALGORITHM': 'HS256',  # Typically HS256 for symmetric signing
+    'SIGNING_ALGORITHM': 'HS256',  # Secret key used to sign the JWT
+}
+
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'

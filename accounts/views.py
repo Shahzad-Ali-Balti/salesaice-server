@@ -2,13 +2,22 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from .serializers import UserSerializer
+from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from django.contrib.auth import get_user_model
+# Correct import
+# from rest_framework_simplejwt.authentication import JWTAuthentication
+
 import os
 import base64
 import httpx
 from django.http import JsonResponse
 import json
+import jwt
+import os
 from dotenv import load_dotenv
 User = get_user_model()
 load_dotenv()
@@ -18,13 +27,23 @@ def register(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         email = data.get('email')
+        username = data.get('username')
         password = data.get('password')
 
-        if User.objects.filter(email=email).exists():
-            return JsonResponse({'error': 'User already exists'}, status=400)
+        if not email or not username or not password:
+            return JsonResponse({'error': 'Email, username, and password are required.'}, status=400)
 
-        user = User.objects.create_user(email=email, password=password)
-        return JsonResponse({'message': 'User registered successfully'})
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'Email already exists'}, status=400)
+
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({'error': 'Username already exists'}, status=400)
+
+        # Role is hardcoded as 'user'
+        user = User.objects.create_user(email=email, username=username, password=password, role='admin')
+
+        return JsonResponse({'message': 'User registered successfully'},status=200)
+
 
 
 @csrf_exempt
@@ -34,18 +53,43 @@ def login(request):
         email = data.get('email')
         password = data.get('password')
 
+        # Authenticate user
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
+            # Generate the default refresh token
             refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
 
-            # Serialize user
-            user_data = UserSerializer(user).data
+            # Add additional custom claims to both access and refresh tokens
+            refresh_payload = {
+                'name': user.username,
+                'email': user.email,
+                'role': user.role,
+            }
+            secret_key=os.getenv("JWT_SECRET_KEY")
+            # Encode the access token manually with custom claims
+            custom_access_token = jwt.encode(
+                {**refresh_payload, **{'exp': refresh.access_token['exp']}},  # Add expiration from original token
+                secret_key,  # Secret key for signing the JWT
+                algorithm='HS256'  # You can choose any algorithm (e.g., RS256 if using RSA keys)
+            )
 
+            # Encode the refresh token manually with custom claims
+            custom_refresh_token = jwt.encode(
+                {**refresh_payload, **{'exp': refresh['exp']}},  # Use the expiration time from the original refresh token
+                secret_key,  # Secret key for signing the JWT
+                algorithm='HS256'  # You can choose any algorithm (e.g., RS256 if using RSA keys)
+            )
+
+            # Return the custom JWT token and user data
             return JsonResponse({
-                'token': access_token,
-                'user': user_data,
+                'refresh_token': custom_refresh_token,  # Return the custom refresh token with the additional claims
+                'token': custom_access_token,  # Return the custom access token with the additional claims
+                'user': {
+                    'name': user.username,
+                    'email': user.email,
+                    'role': user.role,
+                },
             })
 
         else:
@@ -91,3 +135,50 @@ def accessToken(request):
         except Exception as e:
             # Handle general exceptions
             return JsonResponse({"error": "An error occurred", "details": str(e)}, status=500)
+
+
+def decode_jwt_token(token):
+    try:
+        # Decode the token using the secret
+        decoded = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+        return decoded
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # This still ensures that the user is authenticated
+def get_user_data(request):
+    try:
+        # Get the refresh token from the Authorization header
+        authorization_header = request.headers.get('Authorization', None)
+        
+        if not authorization_header:
+            return JsonResponse({'error': 'Authorization header missing'}, status=400)
+        
+        # Extract the token from 'Bearer <token>'
+        token = authorization_header.split(' ')[1]
+        
+        # Decode and validate the JWT token
+        decoded_token = decode_jwt_token(token)
+
+        if decoded_token is None:
+            return JsonResponse({'error': 'Invalid or expired token'}, status=401)
+        
+        # Get user info from the decoded token
+        user_id = decoded_token.get('user_id')
+        
+        # Retrieve the user from the database using the user_id
+        user = get_user_model().objects.get(id=user_id)
+        
+        # Return user email and role
+        return JsonResponse({
+            'name': user.username,
+            'email': user.email,
+            'role': user.role,
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
