@@ -102,7 +102,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-SECRET_KEY= os.getenv('JWT_SECRET_KEY')
+SECRET_KEY='django-insecure-=9tgzd3ihuj%8il22ah=%kodb%ddz&3r*jb_du11w!)amcr#_4'
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
