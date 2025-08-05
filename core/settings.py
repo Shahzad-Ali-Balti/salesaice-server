@@ -19,6 +19,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',  # For example, allow this domain (frontend running on port 3000)
     'https://salesaice.vercel.app',    # Another domain
+    'https://www.salesaice.ai'
 ]
 
 # Application definition
