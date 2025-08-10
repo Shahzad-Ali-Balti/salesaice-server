@@ -16,7 +16,8 @@ class Command(BaseCommand):
                 user = User.objects.create_user(
                     username='admin',
                     email='admin@gmail.com',
-                    password='12345678'
+                    password='12345678',
+                    role='admin'
                 )
                 user.is_staff = True  # Make the user a staff member (admin privileges)
                 user.is_superuser = True  # Grant superuser privileges

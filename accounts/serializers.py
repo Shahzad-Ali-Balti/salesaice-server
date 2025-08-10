@@ -22,3 +22,26 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email']  # return only safe fields
+
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # custom claims in BOTH access & refresh
+        token['username'] = user.username
+        token['email'] = user.email
+        token['role'] = user.role
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        # include user payload for convenience (your frontend already expects it)
+        data['user'] = {
+            'name': self.user.username,
+            'email': self.user.email,
+            'role': self.user.role,
+        }
+        return data
