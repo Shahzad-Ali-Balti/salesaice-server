@@ -7,6 +7,7 @@ def send_html_email(subject, template_name, context, to_email):
     html_message = render_to_string(template_name, context)
     
     # Send email
+    print(f"Sending email to {to_email} with subject: {subject} and template: {template_name} with context: {context} and settings.DEFAULT_FROM_EMAIL: {settings.DEFAULT_FROM_EMAIL}")
     email = EmailMessage(subject, html_message, settings.DEFAULT_FROM_EMAIL, [to_email])
     email.content_subtype = 'html'  # Important to set the content type to HTML
     email.send()
